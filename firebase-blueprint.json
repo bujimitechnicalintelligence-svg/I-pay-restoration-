@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account information for Config A",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "password": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "source": { "type": "string" },
+        "followers": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "location": { "type": "string" },
+        "avatarUrl": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "FriendRequest": {
+      "title": "Friend Request",
+      "description": "Interaction collection for friend requests",
+      "type": "object",
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "approvedAt": { "type": "number" }
+      },
+      "required": ["from", "to", "status", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{email}": {
+      "schema": "User",
+      "description": "Master user list indexed by email"
+    },
+    "/friend_requests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Friend request interactions"
+    }
+  }
+}

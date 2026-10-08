@@ -1,0 +1,63 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
+
+    function isParticipant(data) {
+      return isSignedIn() && (data.from == request.auth.token.email || data.to == request.auth.token.email);
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{email} {
+      function isValidUser(data) {
+        return data.email is string && data.email.size() <= 128
+          && (data.get('username', '') is string && data.get('username', '').size() <= 128)
+          && (data.get('fullName', '') is string && data.get('fullName', '').size() <= 128);
+      }
+
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow create, update: if isOwner(email) && isValidUser(request.resource.data);
+      
+      // Admin bypass
+      allow read, write: if isOwner('isiyakuharuna060@gmail.com');
+    }
+
+    // --- FRIEND REQUESTS COLLECTION ---
+    match /friend_requests/{requestId} {
+      function isValidFriendRequest(data) {
+        return data.from is string && data.from.size() <= 128
+          && data.to is string && data.to.size() <= 128
+          && data.status in ['pending', 'approved', 'rejected']
+          && data.timestamp is number;
+      }
+
+      allow list: if isParticipant(resource.data);
+      allow get: if isParticipant(resource.data);
+
+      allow create: if isSignedIn() 
+        && request.resource.data.from == request.auth.token.email
+        && isValidFriendRequest(request.resource.data);
+
+      allow update: if isSignedIn() && (
+        // Sender can update (e.g. cancel)
+        (request.auth.token.email == resource.data.from && request.resource.data.to == resource.data.to) ||
+        // Recipient can update (e.g. approve/reject)
+        (request.auth.token.email == resource.data.to && request.resource.data.from == resource.data.from)
+      ) && isValidFriendRequest(request.resource.data);
+    }
+  }
+}
